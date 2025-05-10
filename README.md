@@ -1,27 +1,93 @@
-# Gibbs Sampler Motif Search
+### Gibbs Sampler for Motif Discovery
+This Python script implements a Gibbs Sampling algorithm for identifying conserved motifs (short, recurring patterns) in a given set of DNA sequences. 
 
-This repository contains a Python implementation of the **Gibbs Sampling** algorithm for motif discovery in DNA sequences. Motif discovery is a core problem in bioinformatics, particularly in identifying recurring patterns (motifs) that may have biological significance, such as transcription factor binding sites.
+### How It Works — Code Explained
+### 1. Input Setup
+```
+   def read_data():
+    k = 9  # motif length
+    t = 5  # number of DNA sequences
+    N = 100  # iterations
+    Dna = [
+        "CGCCCCTCTCGGGGGTGTTCAGTAACCGGCCA",
+        "GGGCGAGGTATGTGTAAGTGCCAAGGTGCCAG",
+        "TAGTACCGAGACCGAAAGAAGTATACAGGCGT",
+        "TAGATCAAGTTTCAGGTGCACGTCGGTGAACC",
+        "AATCCACCAGCTCCACGTGCAATGTTGGCCTA"
+    ]
+    return k, t, N, Dna
 
-## Algorithm Overview
+```
+### 2. Create k-mers
+``` def correct(dna, k):
+    return [dna[i:i + k] for i in range(len(dna) - k + 1)]
 
-Gibbs Sampling is a stochastic optimization technique that iteratively improves a set of candidate motifs by probabilistically selecting new motif instances based on a profile matrix constructed from the others. This implementation:
+def Kmers_array(k, Dna):
+    return np.asarray([correct(dna, k) for dna in Dna])
 
-- Initializes motifs randomly from the input DNA sequences.
-- Iteratively refines motifs using a probabilistic sampling strategy.
-- Uses a scoring function to track and retain the best motif set found.
-- Stops after a fixed number of non-improving iterations.
+```
+### 3. Random Initialization of Motifs
 
-## Input Data
+``` def random_kmer_selection(k, t, l, kmers_array):
+    return [kmers_array[i, random.randrange(l - k + 1)] for i in range(t)]
+```
 
-The algorithm works on the following predefined parameters:
-- `k`: Length of the motif (e.g., 9)
-- `t`: Number of DNA strings (e.g., 5)
-- `N`: Number of iterations (e.g., 100)
-- `Dna`: List of DNA sequences (provided in `read_data()` function)
+### 4. Profile Matrix with Pseudocounts
+```def Profile(List, k, t):
+    List = np.asarray([list(item) for item in List])
+    pro = np.ones(shape=(4, k))  # pseudocounts for A, C, G, T
+    for i in range(k):
+        c = Counter(List[:, i])
+        pro[0, i] += c['A']
+        pro[1, i] += c['C']
+        pro[2, i] += c['G']
+        pro[3, i] += c['T']
+    return pro / float(t + 1)
+``` 
+### 5. Probability-Weighted K-mer Sampling
 
-## How to Run
+``` def prgkst(k, kmer_array, profile):
+    result = [(kmer_array[i], compute(kmer_array[i], profile)) for i in range(len(kmer_array))]
+    probs = [item[1] for item in result]
+    probs = [p / sum(probs) for p in probs]  # normalize
+    chosen_index = np.random.choice(np.arange(len(probs)), p=probs)
+    return result[chosen_index][0]
+```
 
-Make sure you have Python 3 and `numpy` and `scipy` installed.
+### 6. Gibbs Sampling Core Loop
 
-```bash
-python gibbs_sampler_motif_search.py
+``` def gibbssampler(k, t, N, l, kmers_array):
+    bestmotifs = random_kmer_selection(k, t, l, kmers_array)
+    score_bestmotifs = Score(bestmotifs, k, t)
+    motifs = bestmotifs[:]
+    for j in range(N):
+        i = Random(t)
+        motifs.pop(i)
+        profile = Profile(motifs, k, t)
+        new_motif = prgkst(k, kmers_array[i], profile)
+        motifs.insert(i, new_motif)
+        score_motifs = Score(motifs, k, t)
+        if score_motifs < score_bestmotifs:
+            bestmotifs = motifs[:]
+            score_bestmotifs = score_motifs
+    return bestmotifs, score_bestmotifs
+```
+
+### Running the Script
+
+### Applications
+Finding transcription factor binding sites
+Discovering conserved regulatory elements
+Comparative genomics and sequence alignment preprocessing
+
+### License
+MIT License
+
+
+
+
+
+
+
+
+
